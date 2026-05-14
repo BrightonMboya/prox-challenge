@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Volume2, VolumeX } from "lucide-react";
 import type { AgentEvent, ChatMessage, RichBlock } from "./types";
 import AssistantMessage from "./components/AssistantMessage";
 import UserMessage from "./components/UserMessage";
 import Composer from "./components/Composer";
+import { useSpeechSynthesis } from "./components/useSpeech";
 
 const SUGGESTIONS = [
   "What's the duty cycle for MIG welding at 200A on 240V?",
@@ -19,12 +21,28 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const tts = useSpeechSynthesis();
+  const spokenRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+
+  useEffect(() => {
+    if (!tts.enabled) return;
+    for (const m of messages) {
+      if (m.role !== "assistant" || !m.done) continue;
+      if (spokenRef.current.has(m.id)) continue;
+      const text = textForSpeech(m.blocks);
+      if (text) {
+        spokenRef.current.add(m.id);
+        tts.speak(text);
+      }
+    }
+  }, [messages, tts]);
 
   const send = async (text: string) => {
     if (busy) return;
@@ -185,6 +203,7 @@ export default function Home() {
 
   const stop = () => {
     abortRef.current?.abort();
+    tts.cancel();
   };
 
   const showWelcome = messages.length === 0;
@@ -202,16 +221,25 @@ export default function Home() {
             <div className="text-xs text-[#9a9aa3]">Vulcan OmniPro 220 · multimodal expert</div>
           </div>
         </div>
-        <div className="text-xs text-[#5a5a64]">
-          <span className="hidden sm:inline">Built on Claude Agent SDK · </span>
-          <a
-            className="hover:text-[#9a9aa3]"
-            href="https://www.harborfreight.com/omnipro-220-industrial-multiprocess-welder-with-120240v-input-57812.html"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            product page ↗
-          </a>
+        <div className="flex items-center gap-3 text-xs text-[#5a5a64]">
+          {tts.supported && (
+            <button
+              onClick={tts.toggle}
+              className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 transition ${
+                tts.enabled
+                  ? "border-[#ff6b35] bg-[#ff6b35]/10 text-[#ff6b35]"
+                  : "border-[#26262d] text-[#9a9aa3] hover:border-[#3a3a44] hover:text-white"
+              }`}
+              aria-label={tts.enabled ? "Mute voice output" : "Enable voice output"}
+              title={tts.enabled ? "Voice output on" : "Voice output off"}
+            >
+              {tts.enabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
+              <span className="hidden sm:inline">
+                {tts.enabled ? (tts.speaking ? "Speaking…" : "Voice on") : "Voice"}
+              </span>
+            </button>
+          )}
+          <span className="hidden sm:inline">Built on Claude Agent SDK</span>
         </div>
       </header>
 
@@ -263,6 +291,15 @@ function collapseBlocksToText(blocks: RichBlock[]): string {
     })
     .filter(Boolean)
     .join("\n\n");
+}
+
+// For TTS — only spoken-friendly text blocks, skip tool/page/artifact noise.
+function textForSpeech(blocks: RichBlock[]): string {
+  return blocks
+    .filter((b): b is { kind: "text"; text: string } => b.kind === "text")
+    .map((b) => b.text)
+    .join(" ")
+    .trim();
 }
 
 function Welcome({ onPick }: { onPick: (s: string) => void }) {

@@ -20,6 +20,8 @@ That's it. The pre-processed manual index and page images are committed, so ther
 
 Default model: `claude-sonnet-4-5`. Set `ANTHROPIC_MODEL=claude-opus-4-5` in `.env` for the strongest answers (slower, pricier).
 
+**Auth note:** if you have Claude Code installed and logged in (Pro/Max subscription), you can omit the `ANTHROPIC_API_KEY` line entirely — the Agent SDK will fall back to your Claude Code OAuth session and the usage will count against your subscription instead of API billing.
+
 ---
 
 ## What it does
@@ -32,6 +34,12 @@ Ask it anything about the OmniPro 220 — duty cycles, polarity, weld defects, s
 4. **Cite the page** so you can verify everything.
 
 Try the four suggested prompts on the landing screen — each one exercises a different shape of multimodal response.
+
+**Voice mode.** Click the microphone in the composer to dictate a question; click the speaker chip in the header to have replies read aloud. Both use the browser's built-in Web Speech API, so they cost nothing and add zero dependencies.
+
+> **STT browser caveat.** The mic uses `SpeechRecognition`, which on Chromium-based browsers routes audio through Google's cloud speech service. That works in **Chrome, Edge, and Safari**.
+>
+> The trade-off: I chose Web Speech API over a paid STT (Whisper, Deepgram) because the brief asks for a one-API-key install, and dragging in a second key for a nice-to-have feature wasn't worth the reviewer friction. The "What I'd build next" section calls this out as a known limitation.
 
 ---
 
@@ -127,22 +135,38 @@ Only necessary if the PDFs in `files/` change.
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install pymupdf
-.venv/bin/python scripts/ingest.py
+npm run ingest
 ```
 
 Outputs are deterministic and committed to git.
 
 ---
 
+## Eval harness
+
+A small CLI for regression-testing the agent against a seed set of questions with known-good page citations and text expectations.
+
+```bash
+npm run eval                  # run all questions
+npm run eval -- duty-cycle    # run questions whose id contains "duty-cycle"
+```
+
+Each question passes if (a) the agent surfaced at least one expected manual page via `show_page`, and (b) the final reply contains at least one expected substring. The seed set lives in `scripts/eval-questions.json` — extend it.
+
+The harness has already been useful: the first run caught that my hand-written `expected_pages` were grep-based guesses, while the actual duty-cycle table lives image-only on pages the text grep didn't see. The gold set is meant to be iteratively tightened against real agent runs.
+
+---
+
 ## What I'd build next
 
-A few directions that fell outside the time budget:
+Honest accounting of what was scoped out, with the cost/value reasoning:
 
-- **Voice in/out.** The brief explicitly invites it, and a hands-busy welder talking to their welder is the right use case. Web Speech API in, ElevenLabs out.
-- **Persistent session memory.** Right now each request is a fresh agent run with the transcript replayed; switching to the Agent SDK's `unstable_v2_createSession` would cut input tokens dramatically on long chats.
-- **Per-page region cropping.** When the agent only needs the duty-cycle table on p. 19, sending the full page wastes vision tokens. A `show_region(doc, page, bbox)` tool would shrink the visual context window meaningfully.
-- **Artifact library.** Once the agent has produced a duty-cycle calculator once, cache and reuse it across sessions instead of regenerating.
-- **Eval harness.** A small set of gold-standard questions (the three in the brief, plus 10–20 more I'd write by hand-reading the manual) scored automatically against expected page citations.
+- **Persistent session memory.** The Agent SDK has `unstable_v2_createSession`, but it's explicitly marked unstable — wiring it in risks the API changing between submission and review. Token savings only materialize on long chats; for one-shot eval questions the win is marginal. Worth doing once the API stabilizes.
+- **Per-page region cropping.** When the agent only needs the duty-cycle table on p. 16, sending the full page wastes vision tokens. A `show_region(doc, page, bbox)` tool would shrink the visual context window — but needs either bbox detection at ingest time (real engineering) or model-specified bboxes at runtime (extra round-trip). The full-page approach already gives strong answers, so this is a speculative optimization.
+- **Artifact library.** Cache produced artifacts so the duty-cycle calculator isn't regenerated every session. Needs session identity + content-addressed storage. First generation isn't slow enough to feel painful, so I parked it.
+- **Better-quality eval gold set.** The seed set in `scripts/eval-questions.json` covers the three brief questions plus two more. Production-grade would be 20+ questions hand-curated from a careful read of the full manual, with multi-page expected citations and a notion of partial credit.
+- **TTS via ElevenLabs.** Browser SpeechSynthesis is fine but synthetic-sounding. ElevenLabs would give a much warmer voice — at the cost of another API key, $/character billing, and reviewer setup friction. Not worth it for a demo.
+- **Reliable STT across all browsers.** The current mic uses Web Speech API, which fails on Brave (no Google service) and Firefox (API not implemented). A real fix means swapping to MediaRecorder + a server-side Whisper/Deepgram call — which adds a second API key and meaningful audio-handling code. Worth it for a real product; not for a demo where the user can just open Chrome.
 
 ---
 

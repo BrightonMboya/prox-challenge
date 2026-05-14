@@ -97,8 +97,6 @@ function buildMcpServer() {
       const imgPath = join(process.cwd(), "public", found.page.image);
       const buf = readFileSync(imgPath);
       const b64 = buf.toString("base64");
-      // The frontend learns which page was shown by reading the tool_use
-      // input on the assistant message — no sentinel needed here.
       return {
         content: [
           {
@@ -124,8 +122,6 @@ function buildMcpServer() {
       html: z.string().describe("Complete self-contained HTML document (include <!doctype html>, <html>, <head> with <style>, <body>, and any <script>)."),
     },
     async ({ title }) => {
-      // HTML doesn't need to come back to the agent — it already streamed
-      // out via the tool_use input. Short ack only, to save tokens.
       return {
         content: [
           {
@@ -179,9 +175,6 @@ export async function* runAgent(
   });
 
   for await (const msg of q as AsyncIterable<SDKMessage>) {
-    // Partial stream events give us token-by-token text deltas. Tool inputs
-    // are NOT complete here (they stream in via input_json_delta chunks),
-    // so tool_use is surfaced from the finalized `assistant` message below.
     if (msg.type === "stream_event") {
       const ev: any = (msg as any).event;
       if (!ev) continue;
@@ -208,9 +201,6 @@ export async function* runAgent(
           id: b.id,
         };
 
-        // Side-effect events: derived directly from the tool's input so we
-        // never have to round-trip the artifact HTML or page image URL back
-        // through the model context.
         if (b.name === "mcp__omnipro-manual__show_page") {
           const { doc, page, reason } = b.input ?? {};
           const found = doc && page ? getPage(doc, page) : null;
@@ -239,7 +229,6 @@ export async function* runAgent(
     }
 
     if (msg.type === "user") {
-      // tool_result turns — used only to mark the tool as finished in the UI.
       const content = (msg as any).message?.content;
       if (!Array.isArray(content)) continue;
       for (const part of content) {

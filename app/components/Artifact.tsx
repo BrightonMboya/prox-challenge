@@ -29,7 +29,6 @@ export default function Artifact({ title, summary, html }: Props) {
           setHeight(h);
         }
       } catch {
-        // cross-origin etc. — leave default height
       }
     };
     f.addEventListener("load", onLoad);

@@ -1,0 +1,47 @@
+{
+  "comment": "Seed eval set. A question passes if the agent surfaced at least one of the expected pages via show_page OR if any expected substring appears in the final reply text. Edit / expand as you wish.",
+  "questions": [
+    {
+      "id": "duty-cycle-mig",
+      "question": "What's the duty cycle for MIG welding at 200A on 240V?",
+      "_note": "Duty cycle tables are image-only on p.16/25/27 (no extractable text), plus mentioned on p.7,19,23.",
+      "expected_pages": [
+        { "doc": "owner-manual", "pages": [7, 16, 19, 23, 25, 27] }
+      ],
+      "expected_text_any": ["duty cycle", "60%", "40%", "20%", "%"]
+    },
+    {
+      "id": "porosity-fcaw",
+      "question": "I'm getting porosity in my flux-cored welds. What should I check?",
+      "expected_pages": [
+        { "doc": "owner-manual", "pages": [37, 40, 43] }
+      ],
+      "expected_text_any": ["porosity", "draft", "wind", "contaminat", "moisture"]
+    },
+    {
+      "id": "tig-polarity",
+      "question": "What polarity setup do I need for TIG welding? Which socket does the ground clamp go in?",
+      "expected_pages": [
+        { "doc": "owner-manual", "pages": [13, 14, 29, 30, 32, 35] }
+      ],
+      "expected_text_any": ["DCEN", "negative", "torch", "ground", "work clamp", "positive", "socket"]
+    },
+    {
+      "id": "process-selection",
+      "question": "What process should I use for 1/4 inch mild steel?",
+      "expected_pages": [
+        { "doc": "selection-chart", "pages": [1] },
+        { "doc": "owner-manual", "pages": [2, 7, 8] }
+      ],
+      "expected_text_any": ["MIG", "stick", "flux", "FCAW"]
+    },
+    {
+      "id": "wire-feed-setup",
+      "question": "How do I install and tension the wire feed roller for 0.030 wire?",
+      "expected_pages": [
+        { "doc": "owner-manual", "pages": [14, 15, 16, 17, 18] }
+      ],
+      "expected_text_any": ["tensioner", "drive roll", "wire feed", "0.030", "groove"]
+    }
+  ]
+}

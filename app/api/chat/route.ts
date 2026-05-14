@@ -10,9 +10,6 @@ type ClientMessage = {
 };
 
 function buildPrompt(history: ClientMessage[], userMessage: string): string {
-  // Stateless multi-turn: encode prior turns as a transcript ahead of the
-  // current question. Each new request is a fresh agent run, but the model
-  // sees the conversation context and any tool results we surfaced as text.
   if (history.length === 0) return userMessage;
 
   const transcript = history
@@ -26,7 +23,6 @@ export async function POST(req: NextRequest) {
   // Auth: prefer ANTHROPIC_API_KEY if present. If not set, the Agent SDK
   // falls back to the Claude Code OAuth session on this machine, which
   // means a logged-in Max/Pro user can run the agent without an API key
-  // (usage counts against their subscription quota, not API billing).
   const key = process.env.ANTHROPIC_API_KEY;
   const hasPlaceholderKey =
     key === "your-api-key-here" || (typeof key === "string" && key.length > 0 && key.length < 20);
