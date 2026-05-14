@@ -1,92 +1,149 @@
-# Prox Founding Engineer Challenge
+# OmniPro Welding Assistant
+
+A multimodal reasoning agent for the **Vulcan OmniPro 220** multiprocess welder. Built on the Claude Agent SDK for the Prox Founding Engineer Challenge.
 
 <img src="product.webp" alt="Vulcan OmniPro 220" width="400" /> <img src="product-inside.webp" alt="Vulcan OmniPro 220 — inside panel" width="400" />
 
-## The Product
+---
 
-The [Vulcan OmniPro 220](https://www.harborfreight.com/omnipro-220-industrial-multiprocess-welder-with-120240v-input-57812.html) is a multiprocess welding system sold by Harbor Freight. It supports four welding processes (MIG, Flux-Cored, TIG, and Stick), runs on both 120V and 240V input, and has an LCD-based synergic control system.
-
-Its owner's manual is 48 pages of dense technical content. Duty cycle matrices across multiple voltages and amperages, polarity setup procedures that differ per welding process, wire feed mechanisms with specific tensioner calibrations, wiring schematics, troubleshooting matrices, weld diagnosis diagrams, and a full parts list.
-
-This is exactly the kind of product Prox exists for. Nobody knows how to use this machine straight out of the box but has time to read 48 page manual, but a complicated machine needs expert-level support.
-
-Additional video: https://www.youtube.com/watch?v=kxGDoGcnhBw
-
-## Your Job
-
-Build a multimodal reasoning agent for the Vulcan OmniPro 220 using the Claude Agent SDK. The agent must be able to answer deep technical questions about this product accurately, helpfully, and not just in text.
-
-The manuals are in the `files/` directory.
-
-**There is no limit to how far you can go.** You can integrate voice. You can build a full interactive experience. Sky is the limit. The more ambitious and polished, the better.
-
-## What We're Testing
-
-### 1. Deep Technical Accuracy
-
-Your agent needs to answer questions like these correctly:
-
-- "What's the duty cycle for MIG welding at 200A on 240V?"
-- "I'm getting porosity in my flux-cored welds. What should I check?"
-- "What polarity setup do I need for TIG welding? Which socket does the ground clamp go in?"
-
-We will test with questions that require cross-referencing multiple manual sections, understanding visual content (diagrams, schematics, charts), and handling ambiguous questions that need clarification from the user.
-
-### 2. Multimodal Responses
-
-This is the most important part. Your agent must not be text-only.
-
-- If someone asks about polarity setup, the agent should draw or show a diagram of which cable goes in which socket, not just describe it.
-- If the answer relates to a specific image in the manual (the wire feed mechanism, the front panel controls, the weld diagnosis examples), the agent should surface that image.
-- If a question is complex enough, the agent should generate interactive content: a duty cycle calculator, a troubleshooting flowchart, a settings configurator that takes process + material + thickness and outputs recommended wire speed and voltage.
-
-When something is too cognitively hard to explain in words, the agent should draw it. Real-time diagrams, interactive schematics, visual walkthroughs generated through code.
-
-For your agent to handle these responses well you need to reverse engineer Claude artifacts. Here are two places where you can start:
-- https://claude.ai/artifacts (see how Claude renders interactive artifacts in chat)
-- https://www.reidbarber.com/blog/reverse-engineering-claude-artifacts
-
-### 3. Tone and Helpfulness
-
-Imagine your user just bought this welder and is standing in their garage trying to set it up. They're not an idiot, but they're not a professional welder either.
-
-### 4. Knowledge Extraction Quality
-
-The manual has a mix of text, tables, labeled diagrams, schematics, and decision matrices. Some critical information exists only in images (the welding process selection chart, the weld diagnosis photos, the wiring schematic). We want to see that your agent understands and presents the visual content, not just the text.
-
-## Tech Requirements
-
-- Use the [Anthropic Claude Agent SDK](https://docs.anthropic.com) as the foundation for your agent.
-- The project must run locally with a single API key provided via `.env`.
-- You are responsible for your own API costs during development.
-
-## How to Present Your Work
-
-**This matters.** Your submission is not just the code — it's how you present it.
-
-- **Build a frontend.** The best way for us to evaluate your agent is if it has a clean, simple UI we can run immediately. This is realistically the only way to properly demo an agent like this.
-- **Hosting is a plus.** If you host it somewhere we can access without cloning, that's a strong signal. Not required, but it removes friction and shows initiative.
-- **Write a clear README.** Explain how your agent works, what design decisions you made, how knowledge is extracted and represented, and how to run it. Your documentation will be evaluated — we want to see how you think and communicate, not just how you code.
-- **Video walkthrough is a huge plus.** Record yourself demoing the agent and explaining your approach. Walk through the hard questions, show how it handles multimodal responses, explain your architecture. This gives us a much richer picture of your work than code alone.
-
-We should be running your agent within 2 minutes of cloning your repo:
+## Run it
 
 ```bash
-git clone <your-fork>
-cd <your-fork>
-cp .env.example .env   # we plug in our own Anthropic API key
-# your install command (npm install, uv install, etc.)
-# your run command (npm run dev, python app.py, etc.)
+git clone <this-repo>
+cd prox-challenge
+cp .env.example .env          # paste your Anthropic key into .env
+npm install
+npm run dev                   # → http://localhost:3000
 ```
 
-If it takes longer than that to set up, that's a problem.
+That's it. The pre-processed manual index and page images are committed, so there is no separate build step.
 
-## What to Submit
+Default model: `claude-sonnet-4-5`. Set `ANTHROPIC_MODEL=claude-opus-4-5` in `.env` for the strongest answers (slower, pricier).
 
-1. Fork this repo.
-2. Build your solution.
-3. Submit your fork URL through the form at [useprox.com/join/challenge](https://useprox.com/join/challenge).
+---
 
-## What Happens Next
+## What it does
 
-We review submissions on a rolling basis and respond to every single one within a few days. Good luck.
+Ask it anything about the OmniPro 220 — duty cycles, polarity, weld defects, settings, schematic questions, parts. It will:
+
+1. **Search the manual** to find relevant pages.
+2. **Open the relevant page as an image** so it can read diagrams, charts, and labelled panels directly, then surface that same page to you inline in the chat.
+3. **Generate an interactive artifact** (a duty cycle calculator, a troubleshooting flowchart, a settings recommender) when the question deserves more than text.
+4. **Cite the page** so you can verify everything.
+
+Try the four suggested prompts on the landing screen — each one exercises a different shape of multimodal response.
+
+---
+
+## Architecture
+
+```
+┌─────────────────┐   POST /api/chat   ┌──────────────────────┐
+│  Next.js client │ ─────────────────▶ │  Next.js API route   │
+│  (app/page.tsx) │                    │  (app/api/chat)      │
+│                 │ ◀──── SSE ──────── │                      │
+└─────────────────┘                    └──────────┬───────────┘
+                                                  │
+                                                  ▼
+                                       ┌──────────────────────┐
+                                       │  Claude Agent SDK    │
+                                       │  query() w/ in-proc  │
+                                       │  MCP server          │
+                                       └──────────┬───────────┘
+                                                  │
+                                ┌─────────────────┼─────────────────┐
+                                ▼                 ▼                 ▼
+                          search_manual       show_page       render_artifact
+                          (BM25 over the    (returns page    (sandboxed iframe
+                           ingest index)    image to model    rendered in chat)
+                                              + UI)
+```
+
+### The three custom MCP tools
+
+| Tool | What it does | Why it matters |
+|---|---|---|
+| `search_manual(query)` | BM25 search across every page of every PDF. Returns ranked snippets with `doc/page` refs. | Lets the model navigate ~50 pages of dense technical content without having to read it all into context every turn. |
+| `show_page(doc, page, reason)` | Reads a specific page from disk, returns it to the model **as an image** (so Claude *sees* the diagrams), and emits a sentinel that the streaming layer turns into an inline page reference in the user's chat. | This is the heart of multimodality. Tables, polarity diagrams, weld-defect photos, and the wiring schematic only exist as visual content — text extraction misses them entirely. |
+| `render_artifact(title, summary, html)` | Streams a self-contained HTML document to the frontend, which renders it in a sandboxed iframe with `allow-scripts`. | Lets the model write interactive UI on the fly when text falls short — calculators, decision trees, configurators. |
+
+The MCP server runs in-process via `createSdkMcpServer`. No subprocess, no separate transport.
+
+### Streaming pipeline
+
+The Agent SDK yields a mix of message types:
+- `stream_event` → partial assistant deltas (token-by-token text, thinking, tool_use starts)
+- `user` → tool results (where I pluck out artifact / page sentinels)
+- `result` → terminal message with cost + usage
+
+The API route serializes a small, frontend-tailored event union (`AgentEvent` in `lib/agent.ts`) over Server-Sent Events. The client reduces those events into rich block lists per message — so a single assistant turn might be `[text → tool chip → page image → text → artifact → text]` interleaved in render order.
+
+### Knowledge extraction
+
+`scripts/ingest.py` walks `files/`, and for every page of every PDF:
+- extracts the text layer with PyMuPDF,
+- renders the page at 150 DPI as JPEG (full size) + 60 DPI (thumbnail),
+- writes everything into `public/manual/<doc>/page-NNN.jpg` and a single `lib/manual-index.json`.
+
+The runtime never touches PDFs — only the JSON index (for search) and the JPEGs (for visual reasoning + UI display).
+
+Design choice: rendered images at 150 DPI are sharp enough for Claude to read fine print, table cells, and small diagrams, while keeping the total bundle around 14 MB. The selection chart PDF has **zero extracted text** — it's a vector chart with text-as-paths — so it lives entirely as an image and the model reasons from that image when called.
+
+### Why this stack
+
+- **Next.js 16 / App Router** — one process serving both UI and API, single `npm run dev`, easy deploy story (Vercel out of the box).
+- **Claude Agent SDK** — required by the brief, and a clean fit: the in-process MCP server lets all three tools live in one file, partial-message events give native streaming, and `permissionMode: bypassPermissions` + a tight `allowedTools` list keeps the agent locked to the three custom tools (no filesystem, no shell).
+- **Tailwind 4** — fast, no per-component class soup.
+- **No vector DB / no RAG embedding layer** — at this corpus size (50 pages, ~50k tokens of text) BM25 outperforms semantic search for the kind of literal welding-jargon questions users ask, and avoids a separate index dependency.
+
+### Sandboxing artifacts
+
+Each artifact lives in an `<iframe sandbox="allow-scripts">`. The HTML is written via `srcdoc`, so there is no parent-page DOM access, no cookies, no same-origin access, and no network outside what the agent inlines (the system prompt forbids it from inlining any external scripts). The artifact iframe auto-sizes to its content and supports a fullscreen toggle.
+
+---
+
+## Files of interest
+
+```
+files/                              # source PDFs (input to ingest)
+scripts/ingest.py                   # PDF → JSON index + page JPEGs
+public/manual/                      # rendered page JPEGs (committed)
+lib/manual-index.json               # search corpus + page metadata (committed)
+lib/manual.ts                       # search + page lookup helpers
+lib/agent.ts                        # Agent SDK setup, MCP tools, event stream
+app/api/chat/route.ts               # SSE endpoint
+app/page.tsx                        # main chat UI
+app/components/Artifact.tsx         # sandboxed iframe renderer
+app/components/PageReference.tsx    # inline manual page card
+app/components/AssistantMessage.tsx # block-list renderer
+```
+
+---
+
+## Re-running the ingest
+
+Only necessary if the PDFs in `files/` change.
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install pymupdf
+.venv/bin/python scripts/ingest.py
+```
+
+Outputs are deterministic and committed to git.
+
+---
+
+## What I'd build next
+
+A few directions that fell outside the time budget:
+
+- **Voice in/out.** The brief explicitly invites it, and a hands-busy welder talking to their welder is the right use case. Web Speech API in, ElevenLabs out.
+- **Persistent session memory.** Right now each request is a fresh agent run with the transcript replayed; switching to the Agent SDK's `unstable_v2_createSession` would cut input tokens dramatically on long chats.
+- **Per-page region cropping.** When the agent only needs the duty-cycle table on p. 19, sending the full page wastes vision tokens. A `show_region(doc, page, bbox)` tool would shrink the visual context window meaningfully.
+- **Artifact library.** Once the agent has produced a duty-cycle calculator once, cache and reuse it across sessions instead of regenerating.
+- **Eval harness.** A small set of gold-standard questions (the three in the brief, plus 10–20 more I'd write by hand-reading the manual) scored automatically against expected page citations.
+
+---
+
+Built by Brighton Mboya for the [Prox](https://useprox.com) Founding Engineer Challenge.

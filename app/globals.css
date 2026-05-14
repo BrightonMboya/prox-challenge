@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0a0a0b;
+  --color-surface: #131316;
+  --color-surface-2: #1a1a1f;
+  --color-border: #26262d;
+  --color-text: #e8e8ea;
+  --color-text-dim: #9a9aa3;
+  --color-accent: #ff6b35;
+  --color-accent-dim: #c84d1f;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+html, body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a2a32; border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #3a3a44; }
+
+.prose-welder {
+  color: var(--color-text);
+  line-height: 1.6;
+}
+.prose-welder p { margin: 0.5rem 0; }
+.prose-welder p:first-child { margin-top: 0; }
+.prose-welder p:last-child { margin-bottom: 0; }
+.prose-welder strong { color: #fff; font-weight: 600; }
+.prose-welder code {
+  background: var(--color-surface-2);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+.prose-welder ul, .prose-welder ol { padding-left: 1.25rem; margin: 0.5rem 0; }
+.prose-welder li { margin: 0.2rem 0; }
+.prose-welder ul { list-style: disc; }
+.prose-welder ol { list-style: decimal; }
+.prose-welder h1, .prose-welder h2, .prose-welder h3 {
+  color: #fff;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+.prose-welder h1 { font-size: 1.25rem; }
+.prose-welder h2 { font-size: 1.125rem; }
+.prose-welder h3 { font-size: 1rem; }
+.prose-welder table {
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  width: 100%;
+  font-size: 0.875rem;
+}
+.prose-welder th, .prose-welder td {
+  border: 1px solid var(--color-border);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+}
+.prose-welder th {
+  background: var(--color-surface-2);
+  font-weight: 600;
+}
+.prose-welder pre {
+  background: var(--color-surface-2);
+  padding: 0.75rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #1a1a1f 0%, #26262d 50%, #1a1a1f 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite linear;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.pulse-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  animation: pulse 1.4s infinite ease-in-out;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
